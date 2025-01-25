@@ -1,45 +1,62 @@
-from flask import Flask, request
-
-app = Flask(__name__)
-
-stores = [{"name": "My Store", "items": [{"name": "Chair", "price": 15.99}]}]
-
-
-@app.get("/store")  # http://127.0.0.1:5000/store
-def get_stores():
-    return {"stores": stores}
+from flask import Flask
+from flask_smorest import Api
+from resources.item import blp as ItemBlueprint
+from resources.store import blp as StoreBlueprint
+import os
+from db import db
+import models # to allow easy access to all models. Models need to be imported to be registered with the database
+from pathlib import Path
 
 
-@app.post("/store")
-def create_store():
-    request_data = request.get_json()
-    new_store = {"name": request_data["name"], "items": []}
-    stores.append(new_store)
-    return new_store, 201
+# Factory pattern
+def create_app(db_url=None):
+    
+    app = Flask(__name__,instance_relative_config=True) # Create the app
+    '''
+        `instance_relative_config=True` tells the app that the configuration files are in the instance folder
+    '''
+
+    app.config["PROPAGATE_EXCEPTIONS"] = True # propagate exceptions to the app
+    app.config["API_TITLE"] = "Store REST API whit Flask-Smorest"
+    app.config["API_VERSION"] = "v1"
+    app.config["OPENAPI_VERSION"] = "3.0.3"
+    app.config["OPENAPI_URL_PREFIX"] = "/" # This is the root of the API
+    app.config["OPENAPI_SWAGGER_UI_PATH"] = "/swagger-ui" # This is the path to the Swagger UI
+    app.config["OPENAPI_SWAGGER_UI_URL"] = "https://cdn.jsdelivr.net/npm/swagger-ui-dist/" # This is the URL where the Swagger UI is hosted
+    
+    # Database configuration
+    app.config["SQLALCHEMY_DATABASE_URI"] = (
+    db_url or os.getenv("DATABASE_URL", "sqlite:///data.db")
+    
+    )# db_url || (Data base according to ENV || SQLite )
+    """
+     - `db_url`: Optional parameter for overriding the database configuration.
+     - Default: SQLite database in the `instance/data.db` file due to `sqlite:///data.db` 
+    """
+    # Avoid SQLAlchemy warnings
+    app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False  
+    
+    # Path to the file
+    file_path = "instance/data.db"
+  
+     # Initialize the database with the app (initialize extensions)
+    db.init_app(app)
+
+    # Initialize the API with the app
+    api=Api(app)
+    
+    
+    # Check if the database file exists
+    db_file = Path(app.instance_path) / "data.db"
+    if not db_file.is_file():
+            # Ensure the file is created
+            with app.app_context():
+                db.create_all()
 
 
-@app.post("/store/<string:name>/item")
-def create_item(name):
-    request_data = request.get_json()
-    for store in stores:
-        if store["name"] == name:
-            new_item = {"name": request_data["name"], "price": request_data["price"]}
-            store["items"].append(new_item)
-            return new_item, 201
-    return {"message": "Store not found"}, 404
+    # Register blueprints
+    api.register_blueprint(StoreBlueprint) # Register the StoreBlueprint
+    api.register_blueprint(ItemBlueprint)  # Register the ItemBlueprint
 
+    return app
 
-@app.get("/store/<string:name>")
-def get_store(name):
-    for store in stores:
-        if store["name"] == name:
-            return store
-    return {"message": "Store not found"}, 404
-
-
-@app.get("/store/<string:name>/item")
-def get_item_in_store(name):
-    for store in stores:
-        if store["name"] == name:
-            return {"items": store["items"]}
-    return {"message": "Store not found"}, 404
