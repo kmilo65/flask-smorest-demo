@@ -9,4 +9,5 @@ class ItemModel(db.Model):
     price = db.Column(db.Float(precision=2),unique=False, nullable=False) # price is not unique and not null
     store_id = db.Column(db.String(80), db.ForeignKey("stores.id"), unique=False, nullable=False)
     store = db.relationship("StoreModel",back_populates="items") # This is a reference to the StoreModel class
+    tags=db.relationship("TagModel",back_populates="items",secondary="item_tags")
 

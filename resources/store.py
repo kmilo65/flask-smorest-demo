@@ -19,26 +19,21 @@ blp = Blueprint(
 class Store(MethodView):
     @blp.response(200, StoreSchema)
     def get(cls, store_id):
-        try:
-            # You presumably would want to include the store's items here too
-            # More on that when we look at databases
-            return stores[store_id]
-        except KeyError:
-            abort(404, message="Store not found.")
+        store=StoreModel.query.get_or_404(store_id)
+        return store
 
     def delete(cls, store_id):
-        try:
-            del stores[store_id]
-            return {"message": "Store deleted."}
-        except KeyError:
-            abort(404, message="Store not found.")
+            store=StoreModel.query.get_or_404(store_id)
+            db.session.delete(store)
+            db.session.commit()
+            return {"message": "Store deleted successfully"}
 
 
 @blp.route("/store")
 class StoreList(MethodView):
     @blp.response(200, StoreSchema(many=True))
     def get(cls):
-        return stores.values()
+        return StoreModel.query.all()
 
     @blp.arguments(StoreSchema)
     @blp.response(201, StoreSchema)
