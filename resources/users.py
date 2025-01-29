@@ -6,7 +6,8 @@ from schemas import UserSchema # importing marshmallow schemas for validation an
 from sqlalchemy.exc import SQLAlchemyError # Import the SQLAlchemy error class
 from db import db
 from passlib.hash import pbkdf2_sha256
-from flask_jwt_extended import create_access_token
+from flask_jwt_extended import create_access_token, jwt_required, get_jwt,create_refresh_token, get_jwt_identity
+from blocklist import BLOCKLIST
 
 
 
@@ -51,8 +52,9 @@ class UserLogin(MethodView):
         # Validating entering password 
         if pbkdf2_sha256.verify(user_data["password"],user.password):
             # create token for user
-            access_token=create_access_token(identity=user.id)
-            return {"token": access_token},200
+            access_token=create_access_token(identity=user.username,fresh=True)
+            refresh_token=create_refresh_token(identity=user.username)
+            return {"token": access_token,"refresh_token":refresh_token},200
         else:
             abort(401,message="Invalid password")
         
@@ -70,5 +72,24 @@ class User(MethodView):
         db.session.delete(user)
         db.session.commit()
         return {"message":"User deleted"},200
-        
+
+
+@blp.route("/refresh")
+class TokenRefresh(MethodView):
+    @jwt_required(refresh=True)
+    def post(self):
+        current_user=get_jwt_identity()
+        new_token=create_refresh_token(identity=current_user,fresh=False)
+        # if only one refresh token use the code below
+        # jti=get_jwt()["jti"]
+        # BLOCKLIST.add(jti)
+        return {"access_token":new_token}
+
+@blp.route("/logout")
+class UserLogout(MethodView):
+    @jwt_required()
+    def post(self):
+        jti=get_jwt()["jti"]
+        BLOCKLIST.add(jti)
+        return {"message":"Successfully logged out."}   
     

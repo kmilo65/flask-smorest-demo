@@ -1,5 +1,4 @@
 from flask import Flask
-import secrets
 from flask_smorest import Api
 from resources.item import blp as ItemBlueprint
 from resources.store import blp as StoreBlueprint
@@ -10,7 +9,7 @@ import os
 from db import db
 import models # to allow easy access to all models. Models need to be imported to be registered with the database
 from pathlib import Path
-
+from jwt_handlers import jwt  # Import the configured JWTManager instance
 
 
 # Factory pattern
@@ -50,7 +49,11 @@ def create_app(db_url=None):
     # Initialize the API with the app
     api=Api(app)
     
-    jwt=JWTManager(app)
+    
+    jwt.init_app(app)
+    
+
+    
     
     
     # Check if the database file exists
