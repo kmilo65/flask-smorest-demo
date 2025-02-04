@@ -11,6 +11,9 @@ from db import db
 import models # to allow easy access to all models. Models need to be imported to be registered with the database
 from pathlib import Path
 from jwt_handlers import jwt  # Import the configured JWTManager instance
+from dotenv import load_dotenv
+
+
 
 
 # Factory pattern
@@ -20,7 +23,11 @@ def create_app(db_url=None):
     '''
         `instance_relative_config=True` tells the app that the configuration files are in the instance folder
     '''
-
+    load_dotenv()
+    
+    # Access environment variables
+    jwt_secret_key= os.getenv("JWT_SECRET_KEY")
+    
     app.config["PROPAGATE_EXCEPTIONS"] = True # propagate exceptions to the app
     app.config["API_TITLE"] = "Store REST API whit Flask-Smorest"
     app.config["API_VERSION"] = "v1"
@@ -28,7 +35,7 @@ def create_app(db_url=None):
     app.config["OPENAPI_URL_PREFIX"] = "/" # This is the root of the API
     app.config["OPENAPI_SWAGGER_UI_PATH"] = "/swagger-ui" # This is the path to the Swagger UI
     app.config["OPENAPI_SWAGGER_UI_URL"] = "https://cdn.jsdelivr.net/npm/swagger-ui-dist/" # This is the URL where the Swagger UI is hosted
-    app.config["JWT_SECRET_KEY"]="250754305373234332495188987513917959507" #secrets.SystemRandom().getrandbits(128)
+    app.config["JWT_SECRET_KEY"]=jwt_secret_key #secrets.SystemRandom().getrandbits(128)
     
     # Database configuration
     app.config["SQLALCHEMY_DATABASE_URI"] = (
@@ -46,7 +53,7 @@ def create_app(db_url=None):
   
      # Initialize the database with the app (initialize extensions)
     db.init_app(app)
-
+    migrate=Migrate(app,db)
     # Initialize the API with the app
     api=Api(app)
     
