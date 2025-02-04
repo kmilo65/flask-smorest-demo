@@ -4,7 +4,8 @@ from resources.item import blp as ItemBlueprint
 from resources.store import blp as StoreBlueprint
 from resources.tag import blp as TagBlueprint
 from resources.users import blp as UserBlueprint
-from flask_jwt_extended import JWTManager
+#from flask_jwt_extended import JWTManager
+from flask_migrate import Migrate
 import os
 from db import db
 import models # to allow easy access to all models. Models need to be imported to be registered with the database
